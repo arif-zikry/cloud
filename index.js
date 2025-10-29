@@ -15,36 +15,39 @@ const { MongoClient } = require('mongodb');
     }
  ];
 
-drivers.push({name: "Goh Ming Chen", vehicleType: "Hatchback", isAvailable: false, rating: 4.5});
+ drivers.push({name: "Goh Ming Chen", vehicleType: "Hatchback", isAvailable: false, rating: 4.5});
 
-drivers.forEach((element) => console.log(element));
+ console.log(drivers);
 
+ drivers.forEach((element) => console.log(element.name));
+ 
 async function main() {
     const uri = "mongodb://localhost:27017"
     const client =  new MongoClient(uri);
-    const start = Date.now(); // start timer
+    // const start = Date.now(); // start timer
 
     try {
         await client.connect();
-        const end = Date.now(); // end timer
-        console.log("Welcome to MongoDB!");
-        console.log(`Connection established in ${end - start} ms`);
+        // const end = Date.now(); // end timer
+        // console.log(`Connection established in ${end - start} ms`);
+        console.log("Connected to MongoDB!");
 
         const db = client.db("testDB");
-        const collection = db.collection("users");
+        // const collection = db.collection("users");
         const driversCollection = db.collection("drivers");
 
-        drivers.forEach(async (driver) => {
-            const result = await driversCollection.insertOne(driver);
-            console.log(`New Driver created with result: ${result.insertedId}`);
-        });
-
+        //W1
         // await collection.insertOne({ name:"Arif", age: 2004 });
         // console.log("Document Inserted!");
 
         // const result = await collection.findOne({name: "Arif" });
         // console.log("Query result:", result);
-        // })
+        // });
+
+        for (const driver of drivers) {
+            const result = await driversCollection.insertOne(driver);
+            console.log(`New Driver created with result: ${result}`);
+        }
 
         const availableDrivers = await db.collection('drivers').find({
             isAvailable: true,
@@ -53,17 +56,17 @@ async function main() {
 
         console.log("Available Drivers:", availableDrivers);
 
-        const updateResult = await db.collection('drivers').updateOne(
-            { name: "Arif Zikry" },
-            { $inc: { rating: 0.1 } }
+        const updateResult = await db.collection('drivers').updateMany(
+            { name: "Arif Zikry" }, { $inc: { rating: 0.1 } }
         );
-        console.log(`Updated ${updateResult.modifiedCount} document(s)`);
+
+        const updatedDriver = await db.collection('drivers').findOne({ name: "Arif Zikry" });
+        console.log(`Driver updated with result: ${updateResult}`);
 
         const deleteResult = await db.collection('drivers').deleteOne({ isAvailable: false });
         console.log(`Deleted driver with result: ${deleteResult}`);
-    }   
-    
-        catch(err) {
+        
+    }    catch(err) {
         console.error("Error:", err);
     }   
     
