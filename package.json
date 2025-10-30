@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/arif-zikry/cloudw1#readme",
   "dependencies": {
+    "express": "^5.1.0",
     "mongodb": "^6.19.0"
   }
 }
