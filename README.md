@@ -31,43 +31,43 @@
 
 # Week 3
 
-1. POST 
+1. POST Request:
 
-    - What HTTP status code is returned when a ride is created successfully? 
+- what HTTP status code is returned when a ride is created successfully?
 
-    HTTP Status 201
+the server returns a code 201 when a ride is created successfully
 
-    - What is the structure of the response body?
+- What is the structure of the response body?
 
-    JSON
+the response is structured in JSON
 
-2. GET
+2. GET Request
 
-    - What happens if the rides collection is empty? 
+- What happens if the rides in the collection are empty?
 
-    The server returns an empty {}.
+The returned body is empty with a result of "[]"
 
-    - What data type is returned in the response (array/object)? 
+- What data type is returned in response?
 
-    Array
+Array
 
-3. Fix PATCH and DELETE Error
+3. Fix PATCH and DELETE error
 
-    - Catch the error when requesting PATCH or DELETE API, then try to fix the issue reported.
+Catch the error when requesting PATCH or DELETE API, then try to fix the issue reported.
 
-    
+When requesting PATCH or DELETE, the system catches an internal server error(500): Invalid ride ID. This issue is resolved by including the ObjectID library into the server.
 
-    - If you try to update a non-existent ride ID, what status code is returned? 
+If you tried to update a non-existent ride ID, what status code is returned?
 
-    Server returns error code 500 (Internal Server Error)
+server returns an error(500) Invalid park ID or data.
 
-    - What is the vakue of updated in the response if the update succeeds
+What is the value of updated in the response if the update succeeds?
 
-    1
+the value is 1, since only 1 document is updated
 
-    - How does the API differentiate between a successful deletion and a failed one?
+How does the API differentiate between a successful deletion and a failed one?
 
-    The API reads the amount of deleted documents where 0 determines no deletion and other values mean a successful deletion
+a successful deletion would return a deleted {1} while a failed deletion would return an error 404: ride not found
 
 4. Users Endpoints
 
