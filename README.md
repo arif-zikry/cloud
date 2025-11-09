@@ -67,7 +67,7 @@ the value is 1, since only 1 document is updated
 
 How does the API differentiate between a successful deletion and a failed one?
 
-a successful deletion would return a deleted {1} while a failed deletion would return an error 404: ride not found
+a successful deletion would return a deleted {1} while a failed deletion would return an error 404: ride not found, this is detected using the result.deletedCount returned by MongoDB
 
 4. Users Endpoints
 
