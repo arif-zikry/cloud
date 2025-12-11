@@ -1,5 +1,0 @@
-#dependencies
-/node_modules
-
-#garbage
-/dep_index.js
