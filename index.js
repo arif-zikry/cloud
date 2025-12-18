@@ -1,7 +1,10 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const path = require('path');
 const port = 3000;
+const saltRounds = 10;
 
 const app = express();
 app.use(express.json());
@@ -35,6 +38,41 @@ app.get('/', (req, res) => {
     res.send('Welcome to the Ride Sharing Service API');
 });
 
+const authenticate = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) { return res.status(401).json({ error: 'Unauthorized' }); }
+
+    try{
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+};
+
+const authorize = (roles) => (req, res, next) => {
+    if (!roles.includes(req.user.role)) 
+        return res.status(403).json({ error: 'Forbidden' });
+    next();
+};
+
+app.post('/auth/login', async (req, res) => {
+    const user = await db.collection('users').findOne({ email: req.body.email });
+
+    if(!user||!(await bcrypt.compare(req.body.password, user.password))) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign(
+        { userId: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    res.status(200).json({ token });
+});
+
 // Administration
 
 //login
@@ -49,6 +87,11 @@ app.post('/admin', async (req, res) => {
         {
             res.status(401).json({ error: 'Invalid credentials' });
         }
+});
+
+app.delete('/admin/users/:id', authenticate, authorize(['admin']), async (req, res) => {
+    console.log("Admin only");
+    res.status(200).json({ message: 'admin access' });
 });
 
 //View Transactions
@@ -277,8 +320,10 @@ app.get('/users', async (req, res) => {
 
 app.post('/users', async (req, res) => {
     try {
-        const result = await db.collection('users').insertOne(req.body);
-        res.status(201).json({ id: result.InsertedId });
+        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+        const user = {...req.body, password: hashedPassword};
+        const result = await db.collection('users').insertOne(user);
+        res.status(201).json({ message: "User created with id " + result.insertedId });
     } catch (err) {
         res.status(500).json({ error: 'Invalid User Data' });
     }
