@@ -1,5 +1,4 @@
-const { MongoClient } = require('mongodb');
-import { ObjectId } from 'bson';
+const { MongoClient, ObjectId } = require('mongodb');
 const express = require('express');
 const path = require('path');
 const port = 3000;
@@ -113,24 +112,6 @@ app.get('/rides', async (req,res) =>{
     }
     catch (err){
         res.status(500).json({error: 'Error'})
-    }
-})
-
-//Manage Users (delete)
-app.delete('/users/:id', async (req,res) => {
-    try{
-        const result = await db.collection('users').deleteOne(
-            {
-                _id : new bjectId(req.params.id)
-            }
-        )
-            if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        res.status(200).json({ deleted: result.deletedCount});
-    
-    }   catch (err) {
-        res.status(500).json({ error: 'Invalid user ID' });
     }
 })
 
