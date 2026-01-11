@@ -1,7 +1,10 @@
 const { MongoClient, ObjectId } = require('mongodb');
+const express = require('express');
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const express = require('express');
+require('dotenv').config();
+
 const path = require('path');
 const port = 3000;
 const saltRounds = 10;
@@ -58,7 +61,10 @@ const authorize = (roles) => (req, res, next) => {
     next();
 };
 
+////////////////////////////Login/////////////////////////////////////
+
 app.post('/auth/login', async (req, res) => {
+    // console.log(process.env.JWT_SECRET);
     const user = await db.collection('users').findOne({ email: req.body.email });
 
     if(!user||!(await bcrypt.compare(req.body.password, user.password))) {
@@ -73,7 +79,7 @@ app.post('/auth/login', async (req, res) => {
     res.status(200).json({ token });
 });
 
-// Administration
+////////////////////////////Administration//////////////////////////////////////////
 
 //login
 app.post('/admin', async (req, res) => {

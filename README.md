@@ -125,3 +125,49 @@ app.delete('/users/:id', async (req, res) => {
 });
 
 5. Refer to image in Week 3
+
+# Week 5
+
+1. Token Usage:
+
+- What happens if you omit the Authorization header when accessing /admin/users/{id}? 
+
+The app returns a 401: unauthorized with a JSON return of "error":"Unauthorized".
+
+- What error occurs if you use an expired token?
+
+The app returns a 401: unauthorized, with a JSON return of "error":"Invalid Token".
+
+- Paste the token generated to https://jwt.io, and discuss the content 
+
+When the token is pasted into jwt.io, the token can be decoded thus verifying that it is not encrypted. The token is hashed using the HS256 algorithm and the userID, role, time of creation and expiry can be decoded from it.
+
+2. Role Restrictions:
+
+- If a customer-role user tries to access /admin/users/{id}, what status code is returned?
+
+Status code 403 : Forbidden is returned
+
+- How would you modify the middleware to allow both admin and driver roles to access an endpoint? 
+
+changing [('admin')] to [('admin', 'driver')]
+
+3. Security:
+
+- Why is the JWT token sent in the Authorization header instead of the request body?
+
+Follows HTTP authentication standard, keeps payload body clean, prevents accidental logging inside request bodies.
+
+- How does password hashing protect user data in a breach?
+
+The passwords are hashed therefore it needs the secret key to decode to get the actual password.
+
+4. Postman Testing:
+
+- What is the purpose of the Bearer keyword in the Authorization header? 
+
+Client bears proof of identity, server should trust the token holder, common scheme defined in RFC 6750, so the keyword identifies token type.
+
+- How would you test a scenario where a user enters an incorrect password?
+
+randomly changing the token itself would simulate a wrong password.
