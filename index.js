@@ -8,7 +8,7 @@ require('dotenv').config();
 
 //Configuration
 const path = require('path');
-const port = 3000;
+const port = process.env.PORT || 3000;
 const saltRounds = 10;
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, 'web')));
 let db;
 
 async function ConnectToMongoDB() {
-    const uri = "mongodb://localhost:27017"
+    const uri = process.env.MONGODB_URI || "mongodb://localhost:27017"
     const client =  new MongoClient(uri);
 
     try {
