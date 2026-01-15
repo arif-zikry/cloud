@@ -188,9 +188,10 @@ app.get('/rides', authenticate, authorize(['admin', 'user', 'driver']), async (r
 //Manage Drivers (delete)
 app.delete('/drivers/:id', authenticate, authorize(['admin']),async (req,res) => {
     try{
-        const result = await db.collection('drivers').deleteOne(
+        const result = await db.collection('users').deleteOne(
             {
-                _id : new ObjectId(req.params.id)
+                _id : new ObjectId(req.params.id),
+                role: 'driver'
             }
         )
             if (result.deletedCount === 0) {
@@ -226,8 +227,8 @@ app.delete('/rides/:id', authenticate, authorize(['admin']), async (req, res) =>
 app.post('/drivers', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
-        const user = {...req.body, password: hashedPassword};
-        const result = await db.collection('drivers').insertOne(user);
+        const user = {...req.body, password: hashedPassword, role: 'driver'};
+        const result = await db.collection('users').insertOne(user);
         res.status(201).json({ message: "Driver created with id " + result.insertedId });
     } catch (err) {
         res.status(500).json({ error: 'Invalid Driver Data' });
@@ -237,7 +238,7 @@ app.post('/drivers', async (req, res) => {
 //Get all drivers
 app.get('/drivers', authenticate, authorize(['admin']), async (req, res) => {
     try {
-        const drivers = await db.collection('drivers').find().toArray();
+        const drivers = await db.collection('users').find({ role: 'driver' }).toArray();
         res.status(200).json(drivers);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch drivers' });
@@ -247,8 +248,8 @@ app.get('/drivers', authenticate, authorize(['admin']), async (req, res) => {
 //Update driver status
 app.patch('/drivers/:id', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
-        const result = await db.collection('drivers').updateOne(
-            { _id: new ObjectId(req.params.id) },
+        const result = await db.collection('users').updateOne(
+            { _id: new ObjectId(req.params.id), role: 'driver' },
             { $set: { isAvailable: req.body.isAvailable } }
         );
 
@@ -266,7 +267,7 @@ app.patch('/drivers/:id', authenticate, authorize(['admin', 'driver']), async (r
 app.get('/drivers/:id', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
         const driver = await db.collection('drivers').findOne(
-            { _id: new ObjectId(req.params.id) }
+            { _id: new ObjectId(req.params.id), role: 'driver' }
         );
 
         if (!driver) {
@@ -303,14 +304,14 @@ app.patch('/rides/:id', authenticate, authorize(['admin', 'driver', 'user']), as
         if (req.body.driverID && req.body.status) {
             if (req.body.status === 'ongoing') {
                 // Set driver to busy when ride starts
-                await db.collection('drivers').updateOne(
-                    { _id: new ObjectId(req.body.driverID) },
+                await db.collection('users').updateOne(
+                    { _id: new ObjectId(req.body.driverID), role: 'driver' },
                     { $set: { status: 'busy' } }
                 );
             } else if (req.body.status === 'completed') {
                 // Set driver to available when ride completes
-                await db.collection('drivers').updateOne(
-                    { _id: new ObjectId(req.body.driverID) },
+                await db.collection('users').updateOne(
+                    { _id: new ObjectId(req.body.driverID), role: 'driver' },
                     { $set: { status: 'available' } }
                 );
             }
@@ -601,8 +602,11 @@ app.get('/analytics/passengers/', authenticate, authorize(['admin']), async (req
 
     app.get('/analytics/drivers/', authenticate, authorize(['admin']), async (req, res) => {
     try{
-    const pipeline = await db.collection('drivers').aggregate(
+    const pipeline = await db.collection('users').aggregate(
             [
+                {
+                    '$match': { role: 'driver' }
+                },
                 {
                     '$lookup': {
                     'from': 'rides', 
@@ -619,7 +623,7 @@ app.get('/analytics/passengers/', authenticate, authorize(['admin']), async (req
                     '$group': {
                     '_id': '$_id', 
                     'name': {
-                        '$first': '$username'
+                        '$first': '$name'
                     },
                     'status': {
                         '$first': '$status'

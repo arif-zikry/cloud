@@ -1112,8 +1112,8 @@ if (window.location.pathname.endsWith('drivers.html')) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${d.name || ''}</td>
+        <td>${d.email || ''}</td>
         <td>${d.age || ''}</td>
-        <td>${d.driverID || ''}</td>
         <td>${d.isAvailable ? 'Yes' : 'No'}</td>
         <td>${d.ridesDone || 0}</td>
         <td>
@@ -1140,8 +1140,9 @@ if (window.location.pathname.endsWith('drivers.html')) {
     e.preventDefault();
     const data = {
       name: form.name.value,
+      email: form.email.value,
+      password: form.password.value,
       age: parseInt(form.age.value) || undefined,
-      driverID: parseInt(form.driverID.value) || undefined,
       isAvailable: form.isAvailable.value === 'true',
       ridesDone: 0
     };
@@ -1349,16 +1350,17 @@ if (window.location.pathname.endsWith('analytics.html')) {
       });
       
       // Drivers Availability Chart
-      const availableDrivers = drivers.filter(d => d.isAvailable).length;
-      const unavailableDrivers = drivers.length - availableDrivers;
+      const availableDrivers = drivers.filter(d => d.status === 'available' || (!d.status && d.isAvailable)).length;
+      const busyDrivers = drivers.filter(d => d.status === 'busy').length;
+      const unavailableDrivers = drivers.length - availableDrivers - busyDrivers;
       
       new Chart(document.getElementById('driversChart'), {
         type: 'pie',
         data: {
-          labels: ['Available', 'Unavailable'],
+          labels: ['Available', 'Busy', 'Unavailable'],
           datasets: [{
-            data: [availableDrivers, unavailableDrivers],
-            backgroundColor: ['#4CAF50', '#f44336']
+            data: [availableDrivers, busyDrivers, unavailableDrivers],
+            backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
           }]
         },
         options: {
