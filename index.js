@@ -17,8 +17,12 @@ app.use(express.static(path.join(__dirname, 'web')));
 
 let db;
 
+if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI is not set");
+}
+
 async function ConnectToMongoDB() {
-    const uri = process.env.MONGODB_URI || "mongodb://localhost:27017"
+    const uri = process.env.MONGODB_URI;
     const client =  new MongoClient(uri);
 
     try {
