@@ -1,10 +1,12 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const express = require('express');
 
+//Security
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+//Configuration
 const path = require('path');
 const port = 3000;
 const saltRounds = 10;
@@ -61,7 +63,13 @@ const authorize = (roles) => (req, res, next) => {
     next();
 };
 
-////////////////////////////Login/////////////////////////////////////
+const authorizebyId = (id) => (req, res, next) => {
+    if (!id.includes(req.user.userId)) 
+        return res.status(403).json({ error: 'Who are you?' });
+    next();
+};
+
+////////////////////////////Login//////////////////////////////////////////
 
 app.post('/auth/login', async (req, res) => {
     // console.log(process.env.JWT_SECRET);
@@ -71,7 +79,7 @@ app.post('/auth/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     const token = jwt.sign(
-        { userId: user._id, role: user.role },
+        { userId: user._id.toString(), role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
     );
@@ -81,7 +89,7 @@ app.post('/auth/login', async (req, res) => {
 
 ////////////////////////////Administration//////////////////////////////////////////
 
-//login
+//create admin
 app.post('/admin', async (req, res) => {
     const { username, password } = req.body;
     
@@ -97,18 +105,27 @@ app.post('/admin', async (req, res) => {
 
 app.delete('/admin/users/:id', authenticate, authorize(['admin']), async (req, res) => {
     console.log("Admin only");
-    res.status(200).json({ message: 'admin access' });
+    try {
+        const result = await db.collection('admin').deleteOne(
+            { _id: new ObjectId(req.params.id) }
+        );
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Admin not found' });
+        }
+        res.status(200).json({ deleted: result.deletedCount, message: 'admin deleted'});
+    } catch (err) {
+        res.status(500).json({ error: 'Invalid admin ID' });
+    }
 });
 
 //View Transactions
-app.get('/transactions', async (req, res) => {
+app.get('/transactions', authenticate, authorize(['admin']), async (req, res) => {
 
-    driverid = "";
+    const driverid = req.query.DriverID;
 
-    if(req.query.DriverID) {
-        driverid = req.query.DriverID;
+    if(driverid) {
         try {
-        const transactions = await db.collection('transactions').find({DriverID: driverid}).toArray();
+        const transactions = await db.collection('transactions').find({driverID: parseInt(driverid)}).toArray();
         res.status(200).json(transactions);}
         catch (err) {
         res.status(404).json({ error: 'Failed to fetch transactions' });
@@ -126,7 +143,7 @@ app.get('/transactions', async (req, res) => {
 });
 
 //Edit transactions
-app.patch('/transactions/:id', async (req, res) => {
+app.patch('/transactions/:id', authenticate, authorize(['admin']),async (req, res) => {
     try {
         const result = await db.collection('transactions').updateOne(
             { _id: new ObjectId(req.params.id) },
@@ -144,7 +161,7 @@ app.patch('/transactions/:id', async (req, res) => {
 });
 
 //Create Transaction
-app.post('/transactions', async (req, res) => {
+app.post('/transactions', authenticate, authorize(['admin']), async (req, res) => {
     try {
         const result = await db.collection('transactions').insertOne(req.body);
         res.status(201).json({ id: result.insertedId });
@@ -154,7 +171,7 @@ app.post('/transactions', async (req, res) => {
 });
 
 //View Rides
-app.get('/rides', async (req,res) =>{
+app.get('/rides', authenticate, authorize(['admin', 'user', 'driver']), async (req,res) =>{
     try{
         const rides = await db.collection('rides').find().toArray();
         res.status(200).json(rides);
@@ -165,7 +182,7 @@ app.get('/rides', async (req,res) =>{
 })
 
 //Manage Drivers (delete)
-app.delete('/drivers/:id', async (req,res) => {
+app.delete('/drivers/:id', authenticate, authorize(['admin']),async (req,res) => {
     try{
         const result = await db.collection('drivers').deleteOne(
             {
@@ -182,21 +199,39 @@ app.delete('/drivers/:id', async (req,res) => {
     }
 })
 
+//Delete Ride
+app.delete('/rides/:id', authenticate, authorize(['admin']), async (req, res) => {
+    try{
+        const result = await db.collection('rides').deleteOne(
+            { _id: new ObjectId(req.params.id) }
+        );
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Ride not found' });
+        }
+        res.status(200).json({ deleted: result.deletedCount});
+    
+    }   catch (err) {
+        res.status(500).json({ error: 'Invalid ride ID' });
+    }
+});
 
 
-// Drivers
+////////////////////////////Drivers//////////////////////////////////////////
 //Register Driver
 app.post('/drivers', async (req, res) => {
     try {
-        const result = await db.collection('drivers').insertOne(req.body);
-        res.status(201).json({ id: result.insertedId });
+        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+        const user = {...req.body, password: hashedPassword};
+        const result = await db.collection('drivers').insertOne(user);
+        res.status(201).json({ message: "Driver created with id " + result.insertedId });
     } catch (err) {
         res.status(500).json({ error: 'Invalid Driver Data' });
     }
 });
 
 //Get all drivers
-app.get('/drivers', async (req, res) => {
+app.get('/drivers', authenticate, authorize(['admin']), async (req, res) => {
     try {
         const drivers = await db.collection('drivers').find().toArray();
         res.status(200).json(drivers);
@@ -206,7 +241,7 @@ app.get('/drivers', async (req, res) => {
 });
 
 //Update driver status
-app.patch('/drivers/:id', async (req, res) => {
+app.patch('/drivers/:id', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
         const result = await db.collection('drivers').updateOne(
             { _id: new ObjectId(req.params.id) },
@@ -224,7 +259,7 @@ app.patch('/drivers/:id', async (req, res) => {
 });
 
 // Check Profile
-app.get('/drivers/:id', async (req, res) => {
+app.get('/drivers/:id', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
         const driver = await db.collection('drivers').findOne(
             { _id: new ObjectId(req.params.id) }
@@ -239,83 +274,129 @@ app.get('/drivers/:id', async (req, res) => {
     }
 });
 
-//Accept/Refuse Ride
-app.patch('/rides/:id', async (req,res) => {
+//Accept/Refuse/complete Ride
+app.patch('/rides/:id', authenticate, authorize(['admin', 'driver', 'user']), async (req,res) => {
     try{
+        // Build update object from request body
+        const updateFields = {};
+        if (req.body.status) updateFields.status = req.body.status;
+        if (req.body.driverID) updateFields.driverID = req.body.driverID;
+        if (req.body.vehicleID) updateFields.vehicleID = req.body.vehicleID;
+        if (req.body.acceptedAt) updateFields.acceptedAt = req.body.acceptedAt;
+        if (req.body.startedAt) updateFields.startedAt = req.body.startedAt;
+        if (req.body.completedAt) updateFields.completedAt = req.body.completedAt;
+        
         const result = await db.collection('rides').updateOne(
             { _id : new ObjectId(req.params.id)},
-            { $set : {status : (req.body.status)}}
+            { $set : updateFields }
         )
 
         if (result.modifiedCount === 0){
             return res.status(404).json({error: 'Ride not found' });
         }
+        
+        // Update driver status based on ride status
+        if (req.body.driverID && req.body.status) {
+            if (req.body.status === 'ongoing') {
+                // Set driver to busy when ride starts
+                await db.collection('drivers').updateOne(
+                    { _id: new ObjectId(req.body.driverID) },
+                    { $set: { status: 'busy' } }
+                );
+            } else if (req.body.status === 'completed') {
+                // Set driver to available when ride completes
+                await db.collection('drivers').updateOne(
+                    { _id: new ObjectId(req.body.driverID) },
+                    { $set: { status: 'available' } }
+                );
+            }
+        }
+        
         res.status(200).json({updated: result.modifiedCount});
     }   catch (err) {
         res.status(500).json({ error: 'Invalid ride ID'});
     }
 })
 
-//Complete Ride
-app.delete('/rides/:id', async (req, res) => {
-    try{
-        const result = await db.collection('rides').deleteOne(
-            { _id: new ObjectId(req.params.id) }
-        );
+////////////////////////////Vehicles//////////////////////////////////////////
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'Ride not found' });
-        }
-        res.status(200).json({ deleted: result.deletedCount});
-    
-    }   catch (err) {
-        res.status(500).json({ error: 'Invalid ride ID' });
-    }
-});
-
-//View driver Transactions  (no clue)
-// app.get('/driver/transactions', async (req, res) => {
-
-//     if (!req.body.driverid) {
-//         driverid = "";
-//     }
-//     else {
-//         driverid = req.body.driverid;
-//     }
-
-//     try {
-//         const transactions = await db.collection('transactions').find(
-//             { DriverID: driverid }
-//         ).toArray();
-        
-
-//         if(transactions.length === 0) {
-//             return res.status(404).json({ error: 'Transactions not found' });
-//         }
-//         res.status(200).json(transactions);
-//     } catch (err) {
-//         res.status(500).json({ error: 'Invalid Driver ID' });
-//     }
-// });
-
-app.get('/logs/drivers/:id', async (req, res) => {
+// Get all vehicles
+app.get('/vehicles', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
-        const logs = await db.collection('logs').find(
-            { driverId: req.params.id }
-        ).toArray();
-
-        if(!logs) {
-            return res.status(404).json({ error: 'Logs not found' });
-        }
-        res.status(200).json(logs);
+        const vehicles = await db.collection('vehicles').find().toArray();
+        res.status(200).json(vehicles);
     } catch (err) {
-        res.status(500).json({ error: 'Invalid Driver ID' });
+        res.status(500).json({ error: 'Failed to fetch vehicles' });
     }
 });
 
-// Users
+// Add or update vehicle
+app.post('/vehicles', authenticate, authorize(['driver']), async (req, res) => {
+    try {
+        const { driverID, make, model, year, licensePlate, color, capacity } = req.body;
+        
+        // Check if driver already has a vehicle
+        const existing = await db.collection('vehicles').findOne({ driverID });
+        
+        if (existing) {
+            // Update existing vehicle
+            const result = await db.collection('vehicles').updateOne(
+                { driverID },
+                { $set: { make, model, year, licensePlate, color, capacity, updatedAt: new Date() } }
+            );
+            res.status(200).json({ message: 'Vehicle updated successfully', _id: existing._id });
+        } else {
+            // Insert new vehicle
+            const vehicle = { driverID, make, model, year, licensePlate, color, capacity, createdAt: new Date() };
+            const result = await db.collection('vehicles').insertOne(vehicle);
+            res.status(201).json({ message: 'Vehicle registered successfully', _id: result.insertedId });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to register vehicle' });
+    }
+});
 
-app.get('/users', async (req, res) => {
+// Delete vehicle
+app.delete('/vehicles/:id', authenticate, authorize(['driver', 'admin']), async (req, res) => {
+    try {
+        const result = await db.collection('vehicles').deleteOne({ _id: new ObjectId(req.params.id) });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        res.status(200).json({ deleted: result.deletedCount, message: 'Vehicle deleted' });
+    } catch (err) {
+        res.status(500).json({ error: 'Invalid vehicle ID' });
+    }
+});
+
+app.post('/drivers/vehicles', authenticate, authorize(['driver']), async (req, res) => {
+    try {
+        const vehicle = { ...req.body, driver_id: req.user.userId };
+        const result = await db.collection('vehicles').insertOne(vehicle);
+        res.status(201).json({ message: "Vehicle added with id " + result.insertedId });
+    } catch (err) {
+        res.status(500).json({ error: 'Invalid Vehicle Data' });
+    }
+});
+
+app.delete('/drivers/vehicles/:id', authenticate, authorize(['driver']), async (req, res) => {
+    try {
+        const result = await db.collection('vehicles').deleteOne(
+            { _id: new ObjectId(req.params.id), driver_id: req.user.userId }
+        );
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        res.status(200).json({ deleted: result.deletedCount, message: 'vehicle deleted'});
+    } catch (err) {
+        res.status(500).json({ error: 'Invalid Vehicle ID' });
+    }
+});
+
+////////////////////////////Users//////////////////////////////////////////
+
+//get users
+app.get('/users', authenticate, authorize(['admin', 'driver']), async (req, res) => {
     try {
         const users = await db.collection('users').find().toArray();
         res.status(200).json(users);
@@ -324,6 +405,28 @@ app.get('/users', async (req, res) => {
     }
 });
 
+//get single user by id
+app.get('/users/:id', authenticate, async (req, res) => {
+    try {
+        // Allow users to access their own profile or admins to access any profile
+        if (req.user.role !== 'admin' && req.user.userId.toString() !== req.params.id) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        
+        const user = await db.collection('users').findOne(
+            { _id: new ObjectId(req.params.id) }
+        );
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ error: 'Invalid User ID' });
+    }
+});
+
+//create user
 app.post('/users', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
@@ -335,11 +438,31 @@ app.post('/users', async (req, res) => {
     }
 });
 
-app.patch('/users/:id', async (req, res) => {
+//update user status
+app.patch('/users/:id', authenticate, async (req, res) => {
+    // Allow users to update their own profile or admins to update any profile
+    if (req.user.role !== 'admin' && req.user.userId.toString() !== req.params.id) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    
     try {
+        // Build update object dynamically to allow multiple fields
+        const updateFields = {};
+        
+        if (req.body.status !== undefined) updateFields.status = req.body.status;
+        if (req.body.name !== undefined) updateFields.name = req.body.name;
+        if (req.body.email !== undefined) updateFields.email = req.body.email;
+        if (req.body.age !== undefined) updateFields.age = req.body.age;
+        if (req.body.phone !== undefined) updateFields.phone = req.body.phone;
+        if (req.body.paymentMethod !== undefined) updateFields.paymentMethod = req.body.paymentMethod;
+        if (req.body.password !== undefined) {
+            // Hash the new password if provided
+            updateFields.password = await bcrypt.hash(req.body.password, saltRounds);
+        }
+        
         const result = await db.collection('users').updateOne(
             { _id: new ObjectId(req.params.id) },
-            { $set: { status: req.body.status } }
+            { $set: updateFields }
         );
 
         if (result.modifiedCount === 0) {
@@ -352,7 +475,13 @@ app.patch('/users/:id', async (req, res) => {
     }
 });
 
-app.delete('/users/:id', async (req, res) => {
+//delete user
+app.delete('/users/:id', authenticate, async (req, res) => {
+    // Allow users to delete their own account or admins to delete any account
+    if (req.user.role !== 'admin' && req.user.userId.toString() !== req.params.id) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    
     try{
         const result = await db.collection('users').deleteOne(
             { _id: new ObjectId(req.params.id) }
@@ -368,9 +497,8 @@ app.delete('/users/:id', async (req, res) => {
     }
 });
 
-//rides
-
-app.get('/rides', async (req, res) => {
+//view rides
+app.get('/rides/:id', async (req, res) => {
     try {
         const rides = await db.collection('rides').find().toArray();
         res.status(200).json(rides);
@@ -379,44 +507,143 @@ app.get('/rides', async (req, res) => {
     }
 });
 
-app.post('/rides', async (req, res) => {
+//request ride
+app.post('/rides', authenticate, authorize(['admin', 'user']), async (req, res) => {
     try {
-        const result = await db.collection('rides').insertOne(req.body);
+        // Generate random distance (1-100 km) and fare (1-100 currency units)
+        const distance = Math.floor(Math.random() * 100) + 1;
+        const fare = Math.floor(Math.random() * 100) + 1;
+        
+        const ride = {
+            ...req.body,
+            user_id: req.body.user_id ? new ObjectId(req.body.user_id) : req.user.userId,
+            distance: distance,
+            fare: fare,
+            createdAt: new Date()
+        }
+        const result = await db.collection('rides').insertOne(ride);
         res.status(201).json({ id: result.insertedId });
     } catch (err) {
         res.status(500).json({ error: 'Invalid Ride Data' });
     }
 });
 
+//update ride status
 app.patch('/rides/:id', async (req, res) => {
-    try {
-        const result = await db.collection('rides').updateOne(
-            { _id: new ObjectId(req.params.id) },
-            { $set: { status: req.body.status } }
-        );
+    const check = await db.collection('rides').findOne(
+        { _id: new ObjectId(req.params.id) }
+    );
+    if (check.status === 'Completed' || check.status === 'Cancelled') {
+        try {
+            const result = await db.collection('rides').updateOne(
+                { _id: new ObjectId(req.params.id) },
+                { $set: { status: req.body.status } }
+            );
 
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ error: 'Ride not found' });
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ error: 'Ride not found' });
+            }
+            res.status(200).json({ updated: result.modifiedCount});
+
+        } catch (err) {
+            res.status(500).json({ error: 'Invalid ride ID or data' });
         }
-        res.status(200).json({ updated: result.modifiedCount});
-
-    } catch (err) {
-        res.status(500).json({ error: 'Invalid ride ID or data' });
+    } else {
+        res.status(400).json({ error: 'Invalid status update' });
     }
 });
 
-app.delete('/rides/:id', async (req, res) => {
+////////////////////////////Analytics//////////////////////////////////////////
+
+app.get('/analytics/passengers/', authenticate, authorize(['admin']), async (req, res) => {
     try{
-        const result = await db.collection('rides').deleteOne(
-            { _id: new ObjectId(req.params.id) }
-        );
+    const pipeline = await db.collection('users').aggregate(
+            [
+                {
+                    '$lookup': {
+                    'from': 'rides', 
+                    'localField': '_id', 
+                    'foreignField': 'user_id', 
+                    'as': 'user_rides'
+                    }
+                }, {
+                    '$unwind': '$user_rides'
+                }, {
+                    '$group': {
+                    '_id': '$_id', 
+                    'name': {
+                        '$first': '$name'
+                    }, 
+                    'totalRides': {
+                        '$count': {}
+                    }, 
+                    'totalFare': {
+                        '$sum': '$user_rides.fare'
+                    }, 
+                    'avgDistance': {
+                        '$avg': '$user_rides.distance'
+                    }
+                    }
+                }, {
+                    '$project': {
+                    '_id': 0
+                    }
+                }
+            ]).toArray();
+        res.status(200).json(pipeline);
+        }    catch (err) {
+        res.status(500).json({ error: 'Error fetching analytics' });
+    }});
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'Ride not found' });
-        }
-        res.status(200).json({ deleted: result.deletedCount});
-    
-    }   catch (err) {
-        res.status(500).json({ error: 'Invalid ride ID' });
-    }
-});
+    app.get('/analytics/drivers/', authenticate, authorize(['admin']), async (req, res) => {
+    try{
+    const pipeline = await db.collection('drivers').aggregate(
+            [
+                {
+                    '$lookup': {
+                    'from': 'rides', 
+                    'localField': '_id', 
+                    'foreignField': 'driverID', 
+                    'as': 'driver_rides'
+                    }
+                }, {
+                    '$unwind': {
+                        'path': '$driver_rides',
+                        'preserveNullAndEmptyArrays': true
+                    }
+                }, {
+                    '$group': {
+                    '_id': '$_id', 
+                    'name': {
+                        '$first': '$username'
+                    },
+                    'status': {
+                        '$first': '$status'
+                    }, 
+                    'totalRides': {
+                        '$sum': {
+                            '$cond': [{ '$ifNull': ['$driver_rides', false] }, 1, 0]
+                        }
+                    }, 
+                    'totalFare': {
+                        '$sum': { '$ifNull': ['$driver_rides.fare', 0] }
+                    }, 
+                    'avgDistance': {
+                        '$avg': '$driver_rides.distance'
+                    }
+                    }
+                }, {
+                    '$project': {
+                    '_id': 0,
+                    'name': 1,
+                    'status': 1,
+                    'totalRides': 1,
+                    'totalFare': 1,
+                    'avgDistance': 1
+                    }
+                }
+            ]).toArray();
+        res.status(200).json(pipeline);
+        }    catch (err) {
+        res.status(500).json({ error: 'Error fetching analytics' });
+    }});

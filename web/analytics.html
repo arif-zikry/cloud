@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Analytics Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="rides.html">Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="status"></div>
+        <div class="charts-container">
+            <div class="chart-card">
+                <h2>Rides Status Distribution</h2>
+                <canvas id="ridesChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Driver Availability</h2>
+                <canvas id="driversChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Transactions Status</h2>
+                <canvas id="transactionsChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Monthly Rides Trend</h2>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-card full-width">
+                <h2>Revenue by Driver</h2>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-card full-width">
+                <h2>Passenger Statistics (Fare, Distance, Rides)</h2>
+                <canvas id="passengerStatsChart"></canvas>
+            </div>
+        </div>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

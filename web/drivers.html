@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Drivers Management</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Drivers Management</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="rides.html">Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="status"></div>
+        
+        <div class="form-container">
+            <h2>Add New Driver</h2>
+            <form id="driver-form">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required />
+                
+                <label for="age">Age:</label>
+                <input type="number" id="age" name="age" />
+                
+                <label for="driverID">Driver ID:</label>
+                <input type="number" id="driverID" name="driverID" />
+                
+                <label for="isAvailable">Available:</label>
+                <select id="isAvailable" name="isAvailable">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+                
+                <button type="submit">Add Driver</button>
+            </form>
+        </div>
+        
+        <h2>All Drivers</h2>
+        <table id="drivers-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Driver ID</th>
+                    <th>Available</th>
+                    <th>Rides Done</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Drivers will be populated here -->
+            </tbody>
+        </table>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

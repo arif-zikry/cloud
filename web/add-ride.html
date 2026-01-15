@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add Ride</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Add Ride</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="rides.html">Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="status"></div>
+        <form id="add-form" class="form-container">
+            <label for="pickup">Pickup Location:</label>
+            <input type="text" id="pickup" name="pickup" required />
+            
+            <label for="destination">Destination:</label>
+            <input type="text" id="destination" name="destination" required />
+            
+            <label for="status">Status:</label>
+            <select id="status" name="status">
+                <option value="requested">Requested</option>
+                <option value="accepted">Accepted</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+            </select>
+            
+            <button type="submit">Add Ride</button>
+        </form>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

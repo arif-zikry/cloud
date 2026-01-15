@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Profile</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>My Profile</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="rides.html">Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="status"></div>
+        
+        <div class="profile-container">
+            <div class="profile-section">
+                <h2>Account Information</h2>
+                <form id="profile-form" class="form-container">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required />
+                    
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required />
+                    
+                    <label for="age">Age:</label>
+                    <input type="number" id="age" name="age" />
+                    
+                    <label for="phone">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1234567890" />
+                    
+                    <button type="submit">Update Profile</button>
+                </form>
+            </div>
+            
+            <div class="profile-section">
+                <h2>Payment Information</h2>
+                <form id="payment-form" class="form-container">
+                    <label for="cardNumber">Card Number:</label>
+                    <input type="text" id="cardNumber" name="cardNumber" placeholder="**** **** **** 1234" maxlength="19" />
+                    
+                    <label for="cardHolder">Card Holder Name:</label>
+                    <input type="text" id="cardHolder" name="cardHolder" />
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="expiryDate">Expiry Date:</label>
+                            <input type="text" id="expiryDate" name="expiryDate" placeholder="MM/YY" maxlength="5" />
+                        </div>
+                        <div class="form-col">
+                            <label for="cvv">CVV:</label>
+                            <input type="text" id="cvv" name="cvv" placeholder="123" maxlength="3" />
+                        </div>
+                    </div>
+                    
+                    <label for="billingAddress">Billing Address:</label>
+                    <textarea id="billingAddress" name="billingAddress" rows="3"></textarea>
+                    
+                    <button type="submit">Update Payment Method</button>
+                </form>
+            </div>
+            
+            <div class="profile-section">
+                <h2>Change Password</h2>
+                <form id="password-form" class="form-container">
+                    <label for="currentPassword">Current Password:</label>
+                    <input type="password" id="currentPassword" name="currentPassword" required />
+                    
+                    <label for="newPassword">New Password:</label>
+                    <input type="password" id="newPassword" name="newPassword" required />
+                    
+                    <label for="confirmPassword">Confirm New Password:</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required />
+                    
+                    <button type="submit">Change Password</button>
+                </form>
+            </div>
+            
+            <div class="profile-section danger-zone">
+                <h2>Danger Zone</h2>
+                <p>Once you delete your account, there is no going back. Please be certain.</p>
+                <button onclick="deleteAccount()" class="del-btn">Delete Account</button>
+            </div>
+        </div>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

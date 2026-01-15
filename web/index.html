@@ -1,42 +1,32 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rides Dashboard</title>
-    <style>
-      body{font-family:Arial,Helvetica,sans-serif;margin:20px}
-      table{border-collapse:collapse;width:100%}
-      th,td{border:1px solid #ddd;padding:8px}
-      th{background:#f4f4f4}
-      button{margin-right:8px}
-      form{margin-top:12px}
-    </style>
-  </head>
-  <body>
-    <h1>Rides Dashboard</h1>
-    <div id="status">Loading…</div>
-    <table id="rides-table">
-      <thead>
-        <tr><th>Passenger</th><th>Origin</th><th>Destination</th><th>Status</th><th>Actions</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Add ride</h2>
-    <form id="add-form">
-      <input name="passenger" placeholder="Passenger name" required />
-      <input name="origin" placeholder="Origin" />
-      <input name="destination" placeholder="Destination" />
-      <select name="status">
-        <option value="requested">Requested</option>
-        <option value="accepted">Accepted</option>
-        <option value="ongoing">Ongoing</option>
-        <option value="completed">Completed</option>
-      </select>
-      <button type="submit">Add</button>
-    </form>
-
-    <script src="/app.js"></script>
-  </body>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Ride Share Management</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="my-rides.html">My Rides</a></li>
+                <li><a href="driver-rides.html">Available Rides</a></li>
+                <li><a href="register-vehicle.html">My Vehicle</a></li>
+                <li><a href="rides.html">All Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="status">Loading…</div>
+    </main>
+    <script src="app.js"></script>
+</body>
 </html>

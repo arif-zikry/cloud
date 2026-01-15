@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rides List</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Rides Management</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="rides.html">Rides</a></li>
+                <li><a href="users.html">Users</a></li>
+                <li><a href="drivers.html">Drivers</a></li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="analytics.html">Analytics</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div class="rides-header">
+            <div class="search-filter-container">
+                <input type="text" id="search-rides" placeholder="🔍 Search rides..." />
+                <select id="status-filter">
+                    <option value="all">All Status</option>
+                    <option value="requested">Requested</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <button onclick="window.location.href='add-ride.html'" class="add-btn">+ New Ride</button>
+        </div>
+        
+        <div class="view-toggle">
+            <button id="card-view-btn" class="active">📋 Card View</button>
+            <button id="table-view-btn">📊 Table View</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <!-- Card View -->
+        <div id="rides-cards" class="rides-grid"></div>
+        
+        <!-- Table View -->
+        <div id="table-view" style="display: none;">
+            <table id="rides-table">
+                <thead>
+                    <tr>
+                        <th>Passenger</th>
+                        <th>Pickup</th>
+                        <th>Destination</th>
+                        <th>Distance</th>
+                        <th>Fare</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rides will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

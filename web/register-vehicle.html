@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Register Vehicle</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>Vehicle Registration</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="driver-rides.html">Available Rides</a></li>
+                <li><a href="register-vehicle.html">My Vehicle</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div class="form-container">
+            <h2>Register Your Vehicle</h2>
+            <form id="vehicle-form">
+                <div class="form-group">
+                    <label for="make">Make/Brand:</label>
+                    <input type="text" id="make" name="make" placeholder="e.g., Toyota, Honda" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="model">Model:</label>
+                    <input type="text" id="model" name="model" placeholder="e.g., Camry, Civic" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="year">Year:</label>
+                    <input type="number" id="year" name="year" placeholder="e.g., 2020" min="1900" max="2026" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="licensePlate">License Plate:</label>
+                    <input type="text" id="licensePlate" name="licensePlate" placeholder="e.g., ABC1234" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="color">Color:</label>
+                    <input type="text" id="color" name="color" placeholder="e.g., White, Black" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="capacity">Passenger Capacity:</label>
+                    <input type="number" id="capacity" name="capacity" placeholder="e.g., 4" min="1" max="8" required />
+                </div>
+                
+                <button type="submit" class="add-btn">Register Vehicle</button>
+            </form>
+            
+            <div id="status"></div>
+            
+            <div id="current-vehicle" style="margin-top: 2rem;">
+                <h3>Current Vehicle Information</h3>
+                <div id="vehicle-info" class="info-card">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>
