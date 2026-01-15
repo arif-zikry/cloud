@@ -17,12 +17,12 @@ app.use(express.static(path.join(__dirname, 'web')));
 
 let db;
 
-if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI is not set");
+if (!process.env.MONGODBATLAS_CLUSTER_CONNECTIONSTRING) {
+    throw new Error("MONGODBATLAS_CLUSTER_CONNECTIONSTRING is not set");
 }
 
 async function ConnectToMongoDB() {
-    const uri = process.env.MONGODB_URI;
+    const uri = process.env.MONGODBATLAS_CLUSTER_CONNECTIONSTRING;
     const client =  new MongoClient(uri);
 
     try {
