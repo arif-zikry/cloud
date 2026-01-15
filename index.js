@@ -309,10 +309,21 @@ app.patch('/rides/:id', authenticate, authorize(['admin', 'driver', 'user']), as
                     { $set: { status: 'busy' } }
                 );
             } else if (req.body.status === 'completed') {
-                // Set driver to available when ride completes
+                // Get the ride to access the fare
+                const ride = await db.collection('rides').findOne(
+                    { _id: new ObjectId(req.params.id) }
+                );
+                
+                // Calculate driver revenue (30% of fare)
+                const driverRevenue = ride && ride.fare ? ride.fare * 0.3 : 0;
+                
+                // Set driver to available and increment revenue when ride completes
                 await db.collection('users').updateOne(
                     { _id: new ObjectId(req.body.driverID), role: 'driver' },
-                    { $set: { status: 'available' } }
+                    { 
+                        $set: { status: 'available' },
+                        $inc: { revenue: driverRevenue }
+                    }
                 );
             }
         }
@@ -608,46 +619,50 @@ app.get('/analytics/passengers/', authenticate, authorize(['admin']), async (req
                     '$match': { role: 'driver' }
                 },
                 {
+                    '$addFields': {
+                        '_idString': { '$toString': '$_id' }
+                    }
+                },
+                {
                     '$lookup': {
                     'from': 'rides', 
-                    'localField': '_id', 
-                    'foreignField': 'driverID', 
-                    'as': 'driver_rides'
-                    }
-                }, {
-                    '$unwind': {
-                        'path': '$driver_rides',
-                        'preserveNullAndEmptyArrays': true
-                    }
-                }, {
-                    '$group': {
-                    '_id': '$_id', 
-                    'name': {
-                        '$first': '$name'
-                    },
-                    'status': {
-                        '$first': '$status'
-                    }, 
-                    'totalRides': {
-                        '$sum': {
-                            '$cond': [{ '$ifNull': ['$driver_rides', false] }, 1, 0]
+                    'let': { 'driverId': '$_id', 'driverIdStr': '$_idString' },
+                    'pipeline': [
+                        {
+                            '$match': {
+                                '$expr': {
+                                    '$and': [
+                                        { '$eq': ['$status', 'completed'] },
+                                        {
+                                            '$or': [
+                                                { '$eq': ['$driverID', '$$driverId'] },
+                                                { '$eq': ['$driverID', '$$driverIdStr'] }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
                         }
-                    }, 
-                    'totalFare': {
-                        '$sum': { '$ifNull': ['$driver_rides.fare', 0] }
-                    }, 
-                    'avgDistance': {
-                        '$avg': '$driver_rides.distance'
-                    }
+                    ],
+                    'as': 'driver_rides'
                     }
                 }, {
                     '$project': {
                     '_id': 0,
                     'name': 1,
                     'status': 1,
-                    'totalRides': 1,
-                    'totalFare': 1,
-                    'avgDistance': 1
+                    'revenue': { '$ifNull': ['$revenue', 0] },
+                    'totalRides': { '$size': '$driver_rides' },
+                    'totalFare': { 
+                        '$sum': '$driver_rides.fare'
+                    },
+                    'avgDistance': { 
+                        '$cond': [
+                            { '$gt': [{ '$size': '$driver_rides' }, 0] },
+                            { '$avg': '$driver_rides.distance' },
+                            0
+                        ]
+                    }
                     }
                 }
             ]).toArray();

@@ -1433,7 +1433,7 @@ if (window.location.pathname.endsWith('analytics.html')) {
       // Revenue by Driver Chart (using driver analytics from backend)
       if (driverAnalytics && driverAnalytics.length > 0) {
         const topDrivers = driverAnalytics
-          .sort((a, b) => (b.totalFare || 0) - (a.totalFare || 0))
+          .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
           .slice(0, 10);
         
         new Chart(document.getElementById('revenueChart'), {
@@ -1442,7 +1442,7 @@ if (window.location.pathname.endsWith('analytics.html')) {
             labels: topDrivers.map(d => d.name || 'Driver'),
             datasets: [{
               label: 'Revenue (RM)',
-              data: topDrivers.map(d => d.totalFare || 0),
+              data: topDrivers.map(d => d.revenue || 0),
               backgroundColor: '#2196F3'
             }]
           },
@@ -1457,7 +1457,8 @@ if (window.location.pathname.endsWith('analytics.html')) {
                   label: function(context) {
                     const driver = topDrivers[context.dataIndex];
                     return [
-                      `Revenue: RM${(driver.totalFare || 0).toFixed(2)}`,
+                      `Revenue (30%): RM${(driver.revenue || 0).toFixed(2)}`,
+                      `Total Fare: RM${(driver.totalFare || 0).toFixed(2)}`,
                       `Total Rides: ${driver.totalRides || 0}`,
                       `Avg Distance: ${(driver.avgDistance || 0).toFixed(2)} km`
                     ];
