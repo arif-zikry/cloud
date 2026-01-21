@@ -609,6 +609,7 @@ if (window.location.pathname.endsWith('driver-rides.html')) {
   let allRides = [];
   let allUsers = {};
   const { userId } = getAuthData();
+  let currentView = 'available'; // 'available' or 'history'
   
   // Status colors
   const statusColors = {
@@ -644,25 +645,63 @@ if (window.location.pathname.endsWith('driver-rides.html')) {
     return 'N/A';
   }
   
+  async function loadDriverStats() {
+    try {
+      const driver = await api(`/users/${userId}`);
+      const ratingEl = document.getElementById('driver-rating');
+      const rating = driver.rating || 0;
+      ratingEl.textContent = `⭐ Rating: ${rating.toFixed(1)}`;
+    } catch (err) {
+      console.log('Could not load driver stats:', err);
+    }
+  }
+  
   function renderDriverRides(rides) {
     cardsContainer.innerHTML = '';
-    if (rides.length === 0) {
-      cardsContainer.innerHTML = '<div class="no-rides">No rides available at the moment</div>';
+    
+    // Create toggle buttons container
+    const toggleDiv = document.createElement('div');
+    toggleDiv.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center;';
+    toggleDiv.innerHTML = `
+      <button id="view-available" style="padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; background-color: ${currentView === 'available' ? '#4CAF50' : '#ccc'}; color: white; font-weight: bold;">
+        Available Rides
+      </button>
+      <button id="view-history" style="padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; background-color: ${currentView === 'history' ? '#4CAF50' : '#ccc'}; color: white; font-weight: bold;">
+        My Ride History
+      </button>
+    `;
+    cardsContainer.appendChild(toggleDiv);
+    
+    // Filter rides based on current view
+    const filteredRides = rides.filter(r => {
+      const isMyRide = r.driverID && String(r.driverID) === String(userId);
+      if (currentView === 'available') {
+        // Show unassigned rides OR my accepted/ongoing rides
+        return !r.driverID || (isMyRide && (r.status === 'accepted' || r.status === 'ongoing'));
+      } else {
+        // History: show only completed or cancelled rides that belong to me
+        return isMyRide && (r.status === 'completed' || r.status === 'cancelled');
+      }
+    });
+    
+    if (filteredRides.length === 0) {
+      const noRidesDiv = document.createElement('div');
+      noRidesDiv.className = 'no-rides';
+      noRidesDiv.textContent = currentView === 'available' 
+        ? 'No rides available at the moment' 
+        : 'No ride history yet';
+      cardsContainer.appendChild(noRidesDiv);
       return;
     }
     
-    for (const r of rides) {
+    for (const r of filteredRides) {
       const card = document.createElement('div');
       card.className = 'ride-card';
       card.style.borderLeft = `4px solid ${statusColors[r.status] || '#ccc'}`;
       
       const date = getRideDate(r);
       const userName = getUserName(r.user_id);
-      // Convert both to strings for comparison
       const isMyRide = r.driverID && String(r.driverID) === String(userId);
-      
-      // Debug logging
-      console.log('Ride:', r._id, 'Status:', r.status, 'DriverID:', r.driverID, 'MyUserID:', userId, 'IsMyRide:', isMyRide);
       
       card.innerHTML = `
         <div class="ride-card-header">
@@ -691,20 +730,20 @@ if (window.location.pathname.endsWith('driver-rides.html')) {
               <span class="info-label">💰 Fare:</span>
               <span class="info-value">${r.fare ? 'RM' + r.fare : 'N/A'}</span>
             </div>
-            ${isMyRide ? `
+            ${isMyRide && r.status === 'completed' ? `
             <div class="info-item" style="color: #4BC0C0; font-weight: bold;">
-              <span>✓ You accepted this ride</span>
+              <span>💰 Your Earnings: RM${(r.fare * 0.3).toFixed(2)} (30%)</span>
             </div>` : ''}
           </div>
         </div>
         <div class="ride-card-actions">
-          ${!r.driverID && (r.status === 'requested' || r.status === 'accepted') ? `
+          ${currentView === 'available' && !r.driverID && (r.status === 'requested' || r.status === 'accepted') ? `
             <button data-id="${r._id}" class="accept-btn" style="background-color: #4BC0C0;">Accept Ride</button>
           ` : ''}
-          ${r.driverID && isMyRide && r.status === 'accepted' ? `
+          ${currentView === 'available' && isMyRide && r.status === 'accepted' ? `
             <button data-id="${r._id}" class="start-btn" style="background-color: #FFCE56;">Start Ride (Pickup)</button>
           ` : ''}
-          ${r.driverID && isMyRide && r.status === 'ongoing' ? `
+          ${currentView === 'available' && isMyRide && r.status === 'ongoing' ? `
             <button data-id="${r._id}" class="complete-btn" style="background-color: #4BC0C0;">Complete Ride (Finish)</button>
           ` : ''}
         </div>
@@ -736,10 +775,15 @@ if (window.location.pathname.endsWith('driver-rides.html')) {
     try {
       statusEl.textContent = 'Loading rides...';
       await loadUsers();
+      await loadDriverStats();
       const list = await api('/rides');
       allRides = list;
-      renderDriverRides(allRides);
-      statusEl.textContent = `${allRides.length} ride${allRides.length !== 1 ? 's' : ''} available`;
+      filterRides();
+      
+      // Update status with counts
+      const myRidesCount = allRides.filter(r => r.driverID && String(r.driverID) === String(userId)).length;
+      const availableCount = allRides.filter(r => !r.driverID).length;
+      statusEl.textContent = `${availableCount} available | ${myRidesCount} in your history`;
     } catch (err) {
       statusEl.textContent = 'Error: ' + err.message;
       cardsContainer.innerHTML = '<div class="no-rides">Failed to load rides</div>';
@@ -827,7 +871,21 @@ if (window.location.pathname.endsWith('driver-rides.html')) {
   
   if (searchInput) searchInput.addEventListener('input', filterRides);
   if (statusFilter) statusFilter.addEventListener('change', filterRides);
-  if (cardsContainer) cardsContainer.addEventListener('click', handleRideAction);
+  if (cardsContainer) {
+    cardsContainer.addEventListener('click', (e) => {
+      // Handle toggle buttons
+      if (e.target.id === 'view-available') {
+        currentView = 'available';
+        filterRides();
+      } else if (e.target.id === 'view-history') {
+        currentView = 'history';
+        filterRides();
+      } else {
+        // Handle ride action buttons
+        handleRideAction(e);
+      }
+    });
+  }
   
   loadDriverRides();
 }
@@ -911,6 +969,14 @@ if (window.location.pathname.endsWith('my-rides.html')) {
         <div class="ride-card-actions">
           <button class="cancel-btn" data-id="${r._id}">Cancel Ride</button>
         </div>` : ''}
+        ${r.status === 'completed' && r.driverID && !r.rated ? `
+        <div class="ride-card-actions">
+          <button class="rate-driver-btn" data-id="${r._id}" data-driver-id="${r.driverID}">⭐ Rate Driver</button>
+        </div>` : ''}
+        ${r.rated ? `
+        <div class="ride-card-actions">
+          <span style="color: #4CAF50;">✓ Driver Rated</span>
+        </div>` : ''}
       `;
       cardsContainer.appendChild(card);
     }
@@ -957,20 +1023,57 @@ if (window.location.pathname.endsWith('my-rides.html')) {
   }
   
   async function handleCancelRide(e) {
-    if (!e.target.classList.contains('cancel-btn')) return;
+    if (e.target.classList.contains('cancel-btn')) {
+      const rideId = e.target.getAttribute('data-id');
+      if (!confirm('Are you sure you want to cancel this ride?')) return;
+      
+      try {
+        await api(`/rides/${rideId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+        loadMyRides();
+      } catch (err) {
+        alert('Error cancelling ride: ' + err.message);
+      }
+    }
     
-    const rideId = e.target.getAttribute('data-id');
-    if (!confirm('Are you sure you want to cancel this ride?')) return;
-    
-    try {
-      await api(`/rides/${rideId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' })
-      });
-      loadMyRides();
-    } catch (err) {
-      alert('Error cancelling ride: ' + err.message);
+    if (e.target.classList.contains('rate-driver-btn')) {
+      const rideId = e.target.getAttribute('data-id');
+      const driverId = e.target.getAttribute('data-driver-id');
+      
+      const rating = prompt('Rate your driver (1-5 stars):');
+      if (!rating || rating < 1 || rating > 5) {
+        alert('Please enter a valid rating between 1 and 5');
+        return;
+      }
+      
+      const comment = prompt('Leave a comment (optional):');
+      
+      try {
+        await api(`/drivers/${driverId}/rate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            rating: parseFloat(rating),
+            comment: comment || '',
+            rideId: rideId
+          })
+        });
+        
+        // Mark ride as rated
+        await api(`/rides/${rideId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rated: true })
+        });
+        
+        alert('Thank you for rating your driver!');
+        loadMyRides();
+      } catch (err) {
+        alert('Error submitting rating: ' + err.message);
+      }
     }
   }
   
@@ -1047,8 +1150,10 @@ if (window.location.pathname.endsWith('users.html')) {
     try {
       statusEl.textContent = 'Loading users...';
       const list = await api('/users');
-      renderUsers(list);
-      statusEl.textContent = `Loaded ${list.length} users`;
+      // Filter to only show users with role 'user'
+      const usersOnly = list.filter(u => u.role === 'user');
+      renderUsers(usersOnly);
+      statusEl.textContent = `Loaded ${usersOnly.length} users`;
     } catch (err) {
       statusEl.textContent = 'Error: ' + err.message;
     }
@@ -1106,33 +1211,49 @@ if (window.location.pathname.endsWith('drivers.html')) {
   const tbody = document.querySelector('#drivers-table tbody');
   const form = document.getElementById('driver-form');
   
-  function renderDrivers(drivers) {
+  async function loadDrivers() {
+    try {
+      statusEl.textContent = 'Loading drivers...';
+      const [drivers, rides] = await Promise.all([
+        api('/drivers'),
+        api('/rides').catch(() => [])
+      ]);
+      
+      // Count completed rides for each driver
+      const ridesCounts = {};
+      rides.forEach(ride => {
+        if (ride.driverID && ride.status === 'completed') {
+          ridesCounts[ride.driverID] = (ridesCounts[ride.driverID] || 0) + 1;
+        }
+      });
+      
+      renderDrivers(drivers, ridesCounts);
+      statusEl.textContent = `Loaded ${drivers.length} drivers`;
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+    }
+  }
+  
+  function renderDrivers(drivers, ridesCounts) {
     tbody.innerHTML = '';
     for (const d of drivers) {
       const tr = document.createElement('tr');
+      const rating = d.rating ? d.rating.toFixed(1) : '0.0';
+      const ratingStars = '⭐'.repeat(Math.round(d.rating || 0));
+      const completedRides = ridesCounts[d._id] || 0;
       tr.innerHTML = `
         <td>${d.name || ''}</td>
         <td>${d.email || ''}</td>
         <td>${d.age || ''}</td>
         <td>${d.isAvailable ? 'Yes' : 'No'}</td>
-        <td>${d.ridesDone || 0}</td>
+        <td>${completedRides}</td>
+        <td>${ratingStars} ${rating} (${d.ratingCount || 0})</td>
         <td>
           <button data-id="${d._id}" class="toggle-btn">Toggle Available</button>
           <button data-id="${d._id}" class="del-btn">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
-    }
-  }
-  
-  async function loadDrivers() {
-    try {
-      statusEl.textContent = 'Loading drivers...';
-      const list = await api('/drivers');
-      renderDrivers(list);
-      statusEl.textContent = `Loaded ${list.length} drivers`;
-    } catch (err) {
-      statusEl.textContent = 'Error: ' + err.message;
     }
   }
   
@@ -1375,14 +1496,14 @@ if (window.location.pathname.endsWith('analytics.html')) {
       // Transactions Status Chart
       const transStatusCounts = {
         pending: transactions.filter(t => t.status === 'pending').length,
-        completed: transactions.filter(t => t.status === 'completed').length,
-        failed: transactions.filter(t => t.status === 'failed').length
+        completed: transactions.filter(t => t.status === 'paid').length,
+        failed: transactions.filter(t => t.status === 'cancelled').length
       };
       
       new Chart(document.getElementById('transactionsChart'), {
         type: 'bar',
         data: {
-          labels: ['Pending', 'Completed', 'Failed'],
+          labels: ['Pending', 'Paid', 'Cancelled'],
           datasets: [{
             label: 'Transactions',
             data: Object.values(transStatusCounts),
@@ -1401,9 +1522,26 @@ if (window.location.pathname.endsWith('analytics.html')) {
         }
       });
       
-      // Monthly Trend Chart (simulated data)
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-      const monthlyRides = months.map(() => Math.floor(Math.random() * 50) + 10);
+      // Monthly Trend Chart (from actual rides data)
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlyRides = new Array(12).fill(0);
+      
+      // Count rides per month
+      rides.forEach(ride => {
+        let rideDate;
+        if (ride.createdAt) {
+          rideDate = new Date(ride.createdAt);
+        } else if (ride._id) {
+          // Extract date from MongoDB ObjectId
+          const timestamp = parseInt(ride._id.substring(0, 8), 16) * 1000;
+          rideDate = new Date(timestamp);
+        }
+        
+        if (rideDate) {
+          const month = rideDate.getMonth();
+          monthlyRides[month]++;
+        }
+      });
       
       new Chart(document.getElementById('trendChart'), {
         type: 'line',
@@ -1442,7 +1580,7 @@ if (window.location.pathname.endsWith('analytics.html')) {
             labels: topDrivers.map(d => d.name || 'Driver'),
             datasets: [{
               label: 'Revenue (RM)',
-              data: topDrivers.map(d => d.revenue || 0),
+              data: topDrivers.map(d => d.totalFare || 0),
               backgroundColor: '#2196F3'
             }]
           },
@@ -1460,7 +1598,8 @@ if (window.location.pathname.endsWith('analytics.html')) {
                       `Revenue (30%): RM${(driver.revenue || 0).toFixed(2)}`,
                       `Total Fare: RM${(driver.totalFare || 0).toFixed(2)}`,
                       `Total Rides: ${driver.totalRides || 0}`,
-                      `Avg Distance: ${(driver.avgDistance || 0).toFixed(2)} km`
+                      `Avg Distance: ${(driver.avgDistance || 0).toFixed(2)} km`,
+                      `Rating: ${(driver.rating || 0).toFixed(1)} ⭐ (${driver.ratingCount || 0} reviews)`
                     ];
                   }
                 }
